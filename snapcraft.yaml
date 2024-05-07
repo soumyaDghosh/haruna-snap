@@ -14,6 +14,8 @@ apps:
     command: usr/bin/haruna
     environment:
       LD_LIBRARY_PATH: $SNAP/ffmpeg-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
+      PATH: $SNAP/ffmpeg-platform/usr/bin:$PATH
+      LC_NUMERIC: C
     plugs:
       - desktop
       - opengl
@@ -27,6 +29,7 @@ apps:
       - unity7
       - screen-inhibit-control
       - mount-observe
+      - udisks2
 
 assumes:
   - snapd2.58.3
