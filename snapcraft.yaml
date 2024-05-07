@@ -25,6 +25,8 @@ apps:
       - audio-playback
       - removable-media
       - unity7
+      - screen-inhibit-control
+      - mount-observe
 
 assumes:
   - snapd2.58.3
@@ -61,6 +63,9 @@ slots:
     interface: dbus
     name: org.kde.haruna
     bus: session
+  mpris:
+    interface: mpris
+    name: haruna
 
 parts:
   ninja:
@@ -98,6 +103,7 @@ parts:
       sed -i "s%^#!/usr/bin/python3$%#!/usr/bin/env python3%g" /usr/local/bin/meson
     build-packages:
       - python3-pip
+
   mpv:
     after: [meson-deps]
     source: https://github.com/mpv-player/mpv.git
@@ -114,6 +120,7 @@ parts:
       - ffmpeg-2204-sdk
     prime:
       - usr/lib/*/libmpv*
+
   mpvqt:
     after: [mpv]
     source: https://invent.kde.org/libraries/mpvqt.git
