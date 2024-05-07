@@ -1,0 +1,191 @@
+name: haruna
+confinement: strict
+grade: stable
+base: core22
+adopt-info: haruna
+icon: $CRAFT_PROJECT_DIR/data/icons/128-apps-haruna.png
+
+apps:
+  haruna:
+    extensions:
+      - kde-neon-6
+    common-id: org.kde.haruna
+    desktop: usr/share/applications/org.kde.haruna.desktop
+    command: usr/bin/haruna
+    environment:
+      LD_LIBRARY_PATH: $SNAP/ffmpeg-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
+    plugs:
+      - desktop
+      - opengl
+      - wayland
+      - x11
+      - home
+      - network
+      - network-bind
+      - audio-playback
+      - removable-media
+      - unity7
+
+assumes:
+  - snapd2.58.3
+compression: lzo
+plugs:
+  desktop:
+    mount-host-font-cache: false
+  icon-themes:
+    interface: content
+    target: $SNAP/data-dir/icons
+    default-provider: gtk-common-themes
+  sound-themes:
+    interface: content
+    target: $SNAP/data-dir/sounds
+    default-provider: gtk-common-themes
+  ffmpeg-2204:
+    interface: content
+    target: ffmpeg-platform
+    default-provider: ffmpeg-2204
+
+
+layout:
+  /usr/share/X11:
+    symlink: $SNAP/kf5/usr/share/X11
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/alsa-lib:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/alsa-lib
+  /usr/share/alsa:
+    bind: $SNAP/usr/share/alsa
+  /etc/alsa/conf.d:
+    bind: $SNAP/etc/alsa/conf.d
+
+slots:
+  session-dbus-interface:
+    interface: dbus
+    name: org.kde.haruna
+    bus: session
+
+parts:
+  ninja:
+    plugin: nil
+    source: https://github.com/ninja-build/ninja.git
+    source-tag: 'v1.11.1'
+    source-depth: 1
+    override-build: |
+      rm -rf build
+      rm -f ninja
+      rm -f ninja_bootstrap
+      sed -i 's_^#!/usr/bin/env python$_#!/usr/bin/env python3_g' configure.py
+      ./configure.py --bootstrap
+      mv ninja ninja_bootstrap
+      rm -rf build
+      ./ninja_bootstrap
+      rm -f ninja_bootstrap
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      mv ninja $CRAFT_PART_INSTALL/usr/bin/
+    build-packages:
+      - python3
+
+  meson-deps:
+    after: [ ninja ]
+    plugin: nil
+    source: https://github.com/mesonbuild/meson.git
+    source-tag: '1.2.3'
+    source-depth: 1
+    override-build: |
+      python3 -m pip install .
+      mkdir -p $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages
+      rm -rf $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages/meson*
+      python3 -m pip install --target=$CRAFT_PART_INSTALL/usr .
+      mv $CRAFT_PART_INSTALL/usr/meson* $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages/
+      sed -i "s%^#!/usr/bin/python3$%#!/usr/bin/env python3%g" /usr/local/bin/meson
+    build-packages:
+      - python3-pip
+  mpv:
+    after: [meson-deps]
+    source: https://github.com/mpv-player/mpv.git
+    source-tag: 'v0.36.0'
+    source-depth: 1
+    plugin: meson
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+      - -Dlibmpv=true
+    build-environment:
+      - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
+    build-snaps:
+      - ffmpeg-2204-sdk
+    prime:
+      - usr/lib/*/libmpv*
+  mpvqt:
+    after: [mpv]
+    source: https://invent.kde.org/libraries/mpvqt.git
+    source-depth: 1
+    plugin: cmake
+    build-environment:
+      - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:$CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/usr
+  haruna:
+    after: [mpvqt]
+    parse-info:
+      - usr/share/metainfo/org.kde.haruna.metainfo.xml
+    plugin: cmake
+    build-packages:
+      - docbook
+      - docbook-xml
+      - docbook-xsl
+      - libass-dev
+      - libgl1-mesa-dev
+      - libgles2-mesa-dev
+      - libpulse0
+      - libv4l-0
+      - libxkbcommon-dev
+      - libvulkan-dev
+      - pkg-config
+      - gettext
+    build-snaps:
+      - ffmpeg-2204-sdk
+      - kde-qt6-core22-sdk
+      - kf6-core22-sdk
+      - yt-dlp
+      - cmake
+    stage-snaps:
+      - yt-dlp
+    stage-packages:
+      - gstreamer1.0-alsa
+      - gstreamer1.0-plugins-base
+      - gstreamer1.0-plugins-bad
+      - gstreamer1.0-plugins-good
+      - gstreamer1.0-plugins-ugly
+      - gstreamer1.0-libav
+      - libasound2
+      - libasound2-data
+      - libasound2-plugins
+      - libasound2-plugins-extra
+      - libpulse0
+      - libv4l-0
+    source: https://invent.kde.org/multimedia/haruna/-/archive/v1.1.0/haruna-v1.1.0.tar.gz
+    build-environment:
+      - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:$CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DKDE_SKIP_TEST_SETTINGS=ON
+    prime:
+      - -usr/lib/*/cmake/*
+      - -usr/include/*
+      - -usr/share/ECM/*
+      - -usr/share/doc/*
+      - -usr/share/man/*
+      - -usr/share/icons/breeze-dark*
+      - -usr/bin/X11
+      - -usr/lib/gcc/$CRAFT_ARCH_TRIPLET_BUILD_FOR/6.0.0
+      - -usr/lib/aspell
+
+  cleanup:
+    plugin: nil
+    after: [haruna]
+    override-prime: |
+      set -eux
+      for snap in "core22" "kf6-core22" "ffmpeg-2204"; do
+        cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$CRAFT_PRIME/{}" \;
+      done
