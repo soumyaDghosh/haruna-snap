@@ -154,7 +154,7 @@ parts:
       - gettext
     build-snaps:
       - ffmpeg-2204-sdk
-      - kde-qt6-core22-sdk
+      - kde-qt6-core22-sdk/latest/candidate
       - kf6-core22-sdk
       - yt-dlp
       - cmake
@@ -162,23 +162,16 @@ parts:
       - yt-dlp
     stage-packages:
       - gstreamer1.0-alsa
-      - gstreamer1.0-plugins-base
       - gstreamer1.0-plugins-bad
       - gstreamer1.0-plugins-good
       - gstreamer1.0-plugins-ugly
       - gstreamer1.0-libav
-      - libasound2
-      - libasound2-data
-      - libasound2-plugins
-      - libasound2-plugins-extra
-      - libpulse0
-      - libv4l-0
     source: https://invent.kde.org/multimedia/haruna/-/archive/v1.1.0/haruna-v1.1.0.tar.gz
     build-environment:
       - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:$CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_BUILD_TYPE=Debug
       - -DKDE_SKIP_TEST_SETTINGS=ON
     prime:
       - -usr/lib/*/cmake/*
@@ -191,11 +184,11 @@ parts:
       - -usr/lib/gcc/$CRAFT_ARCH_TRIPLET_BUILD_FOR/6.0.0
       - -usr/lib/aspell
 
-  cleanup:
-    plugin: nil
-    after: [haruna]
-    override-prime: |
-      set -eux
-      for snap in "core22" "kf6-core22" "ffmpeg-2204"; do
-        cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$CRAFT_PRIME/{}" \;
-      done
+  # cleanup:
+  #   plugin: nil
+  #   after: [haruna]
+  #   override-prime: |
+  #     set -eux
+  #     for snap in "core22" "kf6-core22" "ffmpeg-2204"; do
+  #       cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$CRAFT_PRIME/{}" \;
+  #     done
