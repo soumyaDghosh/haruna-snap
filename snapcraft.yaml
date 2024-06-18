@@ -30,39 +30,17 @@ apps:
       - screen-inhibit-control
       - mount-observe
       - udisks2
-
-assumes:
-  - snapd2.58.3
 compression: lzo
+
 plugs:
-  desktop:
-    mount-host-font-cache: false
-  icon-themes:
-    interface: content
-    target: $SNAP/data-dir/icons
-    default-provider: gtk-common-themes
-  sound-themes:
-    interface: content
-    target: $SNAP/data-dir/sounds
-    default-provider: gtk-common-themes
   ffmpeg-2204:
     interface: content
     target: ffmpeg-platform
     default-provider: ffmpeg-2204
 
 
-layout:
-  /usr/share/X11:
-    symlink: $SNAP/kf5/usr/share/X11
-  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/alsa-lib:
-    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/alsa-lib
-  /usr/share/alsa:
-    bind: $SNAP/usr/share/alsa
-  /etc/alsa/conf.d:
-    bind: $SNAP/etc/alsa/conf.d
-
 slots:
-  session-dbus-interface:
+  haruna:
     interface: dbus
     name: org.kde.haruna
     bus: session
@@ -117,12 +95,17 @@ parts:
       - --prefix=/usr
       - --buildtype=release
       - -Dlibmpv=true
+    build-packages:
+      - libplacebo-dev
+    stage-packages:
+      - libplacebo192
     build-environment:
       - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
     build-snaps:
       - ffmpeg-2204-sdk
     prime:
       - usr/lib/*/libmpv*
+      - usr/lib/*/libplacebo.so.192
 
   mpvqt:
     after: [mpv]
