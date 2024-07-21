@@ -85,22 +85,37 @@ parts:
     build-packages:
       - python3-pip
 
-  mpv:
+  libplacebo:
     after: [meson-deps]
+    source: https://code.videolan.org/videolan/libplacebo.git
+    source-tag: 'v7.349.0'
+    source-depth: 1
+    plugin: meson
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+      - -Ddemos=false
+    build-packages:
+      - libvulkan-dev
+      - spirv-tools
+      - glslang-dev
+      - liblcms2-dev
+      - libxxhash-dev
+    prime:
+      - usr/lib
+
+  mpv:
+    after: [meson-deps, libplacebo]
     source: https://github.com/mpv-player/mpv.git
-    source-tag: 'v0.36.0'
+    source-tag: 'v0.38.0'
     source-depth: 1
     plugin: meson
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
       - -Dlibmpv=true
-    build-packages:
-      - libplacebo-dev
-    stage-packages:
-      - libplacebo192
     build-environment:
-      - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
+      - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:/snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
     build-snaps:
       - ffmpeg-2204-sdk
     prime:
