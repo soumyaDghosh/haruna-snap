@@ -31,14 +31,37 @@ apps:
       - screen-inhibit-control
       - mount-observe
       - udisks2
+  mpv:
+    extensions:
+      - kde-neon-6
+    command: usr/bin/mpv
+    environment:
+      LD_LIBRARY_PATH: $SNAP/ffmpeg-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
+      PATH: $SNAP/ffmpeg-platform/usr/bin:$PATH 
+      LC_NUMERIC: C
+      PYTHONPATH: $SNAP/usr/lib/python3/dist-packages
+    plugs:
+      - desktop
+      - opengl
+      - wayland
+      - x11
+      - home
+      - network
+      - network-bind
+      - audio-playback
+      - removable-media
+      - unity7
+      - screen-inhibit-control
+      - mount-observe
+      - udisks2
 compression: lzo
 
-plugs:
-  ffmpeg-2204:
-    interface: content
-    target: ffmpeg-platform
-    default-provider: ffmpeg-2204
-
+# plugs:
+#   ffmpeg-2204:
+#     interface: content
+#     target: ffmpeg-platform
+#     default-provider: ffmpeg-2204
+#
 
 slots:
   haruna:
@@ -86,97 +109,114 @@ parts:
     build-packages:
       - python3-pip
 
-  shaderc:
-    source: https://github.com/google/shaderc.git
-    source-tag: 'v2024.3'
-    source-depth: 1
-    plugin: cmake
-    cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_BUILD_TYPE=Release
-      - -DSHADERC_SKIP_TESTS=ON
-      - -DSHADERC_SKIP_EXAMPLES=ON
-      - -DSHADERC_SKIP_COPYRIGHT_CHECK=ON
-      - -DSPIRV_SKIP_EXECUTABLES=ON
-    build-environment:
-      - PKG_CONFIG_PATH: /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:/usr/lib/pkgconfig
-    build-snaps:
-      - cmake
-    override-pull: |
-      craftctl default
-      python3 $CRAFT_PART_SRC/utils/git-sync-deps
-    prime:
-      - -usr/bin
-      - -usr/include
-      - -usr/*/*/pkgconfig
-      - -usr/*/*/cmake
-      - -usr/lib/*/libSPIRV*
-      - -usr/lib/*/*.a
+  # shaderc:
+  #   source: https://github.com/google/shaderc.git
+  #   source-tag: 'v2024.3'
+  #   source-depth: 1
+  #   plugin: cmake
+  #   cmake-parameters:
+  #     - -DCMAKE_INSTALL_PREFIX=/usr
+  #     - -DCMAKE_BUILD_TYPE=Release
+  #     - -DSHADERC_SKIP_TESTS=ON
+  #     - -DSHADERC_SKIP_EXAMPLES=ON
+  #     - -DSHADERC_SKIP_COPYRIGHT_CHECK=ON
+  #     - -DSPIRV_SKIP_EXECUTABLES=ON
+  #   build-environment:
+  #     - PKG_CONFIG_PATH: /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:/usr/lib/pkgconfig
+  #   build-snaps:
+  #     - cmake
+  #   override-pull: |
+  #     craftctl default
+  #     python3 $CRAFT_PART_SRC/utils/git-sync-deps
+  #   prime:
+  #     - -usr/bin
+  #     - -usr/include
+  #     - -usr/*/*/pkgconfig
+  #     - -usr/*/*/cmake
+  #     - -usr/lib/*/libSPIRV*
+  #     - -usr/lib/*/*.a
 
-  libplacebo:
-    after: [meson-deps, shaderc]
-    source: https://code.videolan.org/videolan/libplacebo.git
-    source-tag: 'v7.349.0'
-    source-depth: 1
-    plugin: meson
-    meson-parameters:
-      - --prefix=/usr
-      - --buildtype=release
-      - -Dtests=false
-      - -Dvulkan=enabled
-      - -Dglslang=enabled 
-      - -Dshaderc=enabled 
-      - -Dlcms=enabled
-      - -Dd3d11=disabled
-      - -Ddemos=false
-    build-snaps:
-      - ffmpeg-2204-sdk
-    build-environment:
-      - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
-      - LD_LIBRARY_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-    prime:
-      - usr/lib/*/libplacebo*
-    build-packages:
-      - libvulkan-dev
-      - python3-jinja2
-      - glslang-dev
-      - libopengl-dev
-      - liblcms2-dev
+  # libplacebo:
+  #   after: [meson-deps, shaderc]
+  #   source: https://code.videolan.org/videolan/libplacebo.git
+  #   source-tag: 'v7.349.0'
+  #   source-depth: 1
+  #   plugin: meson
+  #   meson-parameters:
+  #     - --prefix=/usr
+  #     - --buildtype=release
+  #     - -Dtests=false
+  #     - -Dvulkan=enabled
+  #     - -Dglslang=enabled 
+  #     - -Dshaderc=enabled 
+  #     - -Dlcms=enabled
+  #     - -Dd3d11=disabled
+  #     - -Ddemos=false
+  #   build-snaps:
+  #     - ffmpeg-2204-sdk
+  #   build-environment:
+  #     - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
+  #     - LD_LIBRARY_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+  #   prime:
+  #     - usr/lib/*/libplacebo*
+  #   build-packages:
+  #     - libvulkan-dev
+  #     - python3-jinja2
+  #     - glslang-dev
+  #     - libopengl-dev
+  #     - liblcms2-dev
 
+  # mpv:
+  #   after: [meson-deps, libplacebo]
+  #   source: https://github.com/mpv-player/mpv.git
+  #   source-tag: 'v0.38.0'
+  #   source-depth: 1
+  #   plugin: meson
+  #   meson-parameters:
+  #     - --prefix=/usr
+  #     - --buildtype=release
+  #     - -Dlibmpv=true
+  #     - -Ddrm=enabled
+  #     - -Dwayland=enabled
+  #     - -Dx11=enabled
+  #   build-snaps:
+  #     - ffmpeg-2204-sdk
+  #   build-environment:
+  #     - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
+  #     - LD_LIBRARY_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+  #   build-packages:
+  #     - libass-dev
+  #     - libdrm-dev
+  #     - libjpeg-turbo8-dev
+  #     - libv4l-dev
+  #     - libpulse0
+  #     - libwayland-dev
+  #     - wayland-protocols
+  #     - libxpresent-dev
+  #     - libxss-dev
+  #     - libxkbcommon-dev
+  #   prime:
+  #     - usr/bin/mpv
+  #     - usr/lib/*/libmpv*
+  #   organize:
+  #     snap/haruna/current: .
   mpv:
-    after: [meson-deps, libplacebo]
+    after: [meson-deps]
     source: https://github.com/mpv-player/mpv.git
-    source-tag: 'v0.38.0'
-    source-depth: 1
+    source-tag: 'v0.36.0'
     plugin: meson
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
       - -Dlibmpv=true
-      - -Ddrm=enabled
-      - -Dwayland=enabled
-      - -Dx11=enabled
-    build-snaps:
-      - ffmpeg-2204-sdk
-    build-environment:
-      - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
-      - LD_LIBRARY_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
     build-packages:
+      - curl
+      - libavcodec-dev
+      - libavfilter-dev
       - libass-dev
-      - libdrm-dev
+      - libx264-dev
+      - libvorbis-dev
       - libjpeg-turbo8-dev
-      - libv4l-dev
-      - libpulse0
-      - libwayland-dev
-      - wayland-protocols
-      - libxpresent-dev
-      - libxss-dev
-      - libxkbcommon-dev
-    prime:
-      - usr/bin/mpv
-      - usr/lib/*/libmpv*
-    organize:
-      snap/haruna/current: .
 
   mpvqt:
     after: [mpv]
