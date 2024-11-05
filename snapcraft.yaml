@@ -14,8 +14,9 @@ apps:
     command: usr/bin/haruna
     environment:
       LD_LIBRARY_PATH: $SNAP/ffmpeg-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
-      PATH: $SNAP/ffmpeg-platform/usr/bin:$PATH
+      PATH: $SNAP/ffmpeg-platform/usr/bin:$PATH 
       LC_NUMERIC: C
+      PYTHONPATH: $SNAP/usr/lib/python3/dist-packages
     plugs:
       - desktop
       - opengl
@@ -85,8 +86,35 @@ parts:
     build-packages:
       - python3-pip
 
+  shaderc:
+    source: https://github.com/google/shaderc.git
+    source-tag: 'v2024.3'
+    source-depth: 1
+    plugin: cmake
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DSHADERC_SKIP_TESTS=ON
+      - -DSHADERC_SKIP_EXAMPLES=ON
+      - -DSHADERC_SKIP_COPYRIGHT_CHECK=ON
+      - -DSPIRV_SKIP_EXECUTABLES=ON
+    build-environment:
+      - PKG_CONFIG_PATH: /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:/usr/lib/pkgconfig
+    build-snaps:
+      - cmake
+    override-pull: |
+      craftctl default
+      python3 $CRAFT_PART_SRC/utils/git-sync-deps
+    prime:
+      - -usr/bin
+      - -usr/include
+      - -usr/*/*/pkgconfig
+      - -usr/*/*/cmake
+      - -usr/lib/*/libSPIRV*
+      - -usr/lib/*/*.a
+
   libplacebo:
-    after: [meson-deps]
+    after: [meson-deps, shaderc]
     source: https://code.videolan.org/videolan/libplacebo.git
     source-tag: 'v7.349.0'
     source-depth: 1
@@ -94,15 +122,26 @@ parts:
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
+      - -Dtests=false
+      - -Dvulkan=enabled
+      - -Dglslang=enabled 
+      - -Dshaderc=enabled 
+      - -Dlcms=enabled
+      - -Dd3d11=disabled
       - -Ddemos=false
+    build-snaps:
+      - ffmpeg-2204-sdk
+    build-environment:
+      - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
+      - LD_LIBRARY_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+    prime:
+      - usr/lib/*/libplacebo*
     build-packages:
       - libvulkan-dev
-      - spirv-tools
+      - python3-jinja2
       - glslang-dev
+      - libopengl-dev
       - liblcms2-dev
-      - libxxhash-dev
-    prime:
-      - usr/lib
 
   mpv:
     after: [meson-deps, libplacebo]
@@ -114,26 +153,76 @@ parts:
       - --prefix=/usr
       - --buildtype=release
       - -Dlibmpv=true
-    build-environment:
-      - PKG_CONFIG_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:/snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
+      - -Ddrm=enabled
+      - -Dwayland=enabled
+      - -Dx11=enabled
     build-snaps:
       - ffmpeg-2204-sdk
+    build-environment:
+      - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
+      - LD_LIBRARY_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+    build-packages:
+      - libass-dev
+      - libdrm-dev
+      - libjpeg-turbo8-dev
+      - libv4l-dev
+      - libpulse0
+      - libwayland-dev
+      - wayland-protocols
+      - libxpresent-dev
+      - libxss-dev
+      - libxkbcommon-dev
     prime:
+      - usr/bin/mpv
       - usr/lib/*/libmpv*
-      - usr/lib/*/libplacebo.so.192
+    organize:
+      snap/haruna/current: .
 
   mpvqt:
     after: [mpv]
     source: https://invent.kde.org/libraries/mpvqt.git
     source-depth: 1
+    source-tag: 'v1.0.1'
     plugin: cmake
     build-environment:
       - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:$CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
     cmake-parameters:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DLibmpv_LIBRARIES=$CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libmpv.so
+      - -DLibmpv_INCLUDE_DIRS=$CRAFT_STAGE/usr/include
+
+  python-deps:
+    source: .
+    plugin: python
+    python-packages:
+      - yt-dlp
+    prime:
+      - -usr/bin/activate
+      - -usr/bin/activate.csh
+      - -usr/bin/activate.fish
+      - -usr/bin/Activate.ps1
+      - -usr/bin/python
+      - -usr/bin/python3
+      - -usr/bin/python3.10
+      - -usr/bin/pip
+      - -usr/bin/pip3
+      - -usr/bin/pip3.10
+      - -usr/bin/wheel
+      - -usr/lib/python3.10/dist-packages/pip*
+      - -usr/lib/python3.10/dist-packages/pkg_resources
+      - -usr/lib/python3.10/dist-packages/setuptools*
+      - -pyvenv.cfg
+      - -lib
+      - -lib64
+      - -include
+      - -share
+    organize:
+      bin: usr/bin
+      lib/python3.10/site-packages: usr/lib/python3/dist-packages
+
   haruna:
-    after: [mpvqt]
+    after: [mpvqt, python-deps]
     parse-info:
       - usr/share/metainfo/org.kde.haruna.metainfo.xml
     plugin: cmake
@@ -152,25 +241,16 @@ parts:
       - gettext
     build-snaps:
       - ffmpeg-2204-sdk
-      - kde-qt6-core22-sdk/latest/candidate
-      - kf6-core22-sdk
-      - yt-dlp
       - cmake
-    stage-snaps:
-      - yt-dlp
-    stage-packages:
-      - gstreamer1.0-alsa
-      - gstreamer1.0-plugins-bad
-      - gstreamer1.0-plugins-good
-      - gstreamer1.0-plugins-ugly
-      - gstreamer1.0-libav
-    source: https://invent.kde.org/multimedia/haruna/-/archive/v1.1.0/haruna-v1.1.0.tar.gz
+    source: https://invent.kde.org/multimedia/haruna/-/archive/v1.2.1/haruna-v1.2.1.tar.gz 
     build-environment:
       - PKG_CONFIG_PATH: /snap/ffmpeg-2204-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:$CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_BUILD_TYPE=Debug
       - -DKDE_SKIP_TEST_SETTINGS=ON
+      - -DLibmpv_LIBRARIES=$CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libmpv.so
+      - -DLibmpv_INCLUDE_DIRS=$CRAFT_STAGE/usr/include
     prime:
       - -usr/lib/*/cmake/*
       - -usr/include/*
@@ -182,11 +262,10 @@ parts:
       - -usr/lib/gcc/$CRAFT_ARCH_TRIPLET_BUILD_FOR/6.0.0
       - -usr/lib/aspell
 
-  # cleanup:
-  #   plugin: nil
-  #   after: [haruna]
-  #   override-prime: |
-  #     set -eux
-  #     for snap in "core22" "kf6-core22" "ffmpeg-2204"; do
-  #       cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$CRAFT_PRIME/{}" \;
-  #     done
+  cleanup:
+    plugin: nil
+    after: [haruna]
+    stage-packages:
+      - libxpresent1
+      - pulseaudio
+      - libpulse0
